@@ -40,6 +40,6 @@ void timer_ndelay (int64_t nanoseconds);
 
 void timer_print_stats (void);
 
-static bool cmp_fnc(const struct list_elem *a, const struct list_elem *b, void * aux UNUSED);
+bool cmp_fnc(const struct list_elem *a, const struct list_elem *b, void * aux UNUSED);
 
 #endif /* devices/timer.h */
