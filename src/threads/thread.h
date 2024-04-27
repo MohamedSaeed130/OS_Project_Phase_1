@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "Floating_Point.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -95,6 +96,12 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
+   /* Our added elements */
+   int Thread_Nice_Value; // Takes form -20 to 20 threads start with a nice value inherited from their parent thread.
+   /*Each time a timer interrupt occurs, Thread_Recent_CPU is incremented by 1 for the running thread only  ,
+   unless the idle thread is running , once per second the value of Thread_Recent_CPU is recalculated for every thread */
+   Float Thread_Recent_CPU; // Estimate of the CPU time the thread has used recently
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -108,6 +115,9 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+/*estimates the average number of threads ready to run over the past minute*/
+Float Thread_Load_Avg ; //known as the system load average: moving average of the number of threads ready to run
+
 
 void thread_init (void);
 void thread_start (void);

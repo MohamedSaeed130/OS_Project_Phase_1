@@ -105,6 +105,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -140,7 +141,55 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
+  
+  if(thread_mlfqs)
+  {
+      if(strcmp(t->name,"idle")!=0)
+      {
+        /*Increment the Thread_Recent_CPU by 1 for the running thread only, unless the idle thread is running */
+        t->Thread_Recent_CPU = ADD_FLOATING_TO_INT(t->Thread_Recent_CPU,1);
+      }
+      else{/*Nothing*/}
+      int tic=(int64_t)timer_ticks();
+      if((tic % 100) == 0)
+      {
+          struct list_elem *e;
 
+          Thread_Load_Avg=ADD_TWO_FLOATING_NUMBERS (DIV_FLOATING_WITH_INT (MUL_FLOATING_WITH_INT (Thread_Load_Avg, 59), 60),
+                        DIV_FLOATING_WITH_INT (CONVERT_INT_TO_FIXEDPOINT (list_size(&ready_list)+(thread_current () != idle_thread?1:0)), 60));
+          
+          for (e = list_begin (&all_list); e != list_end (&all_list);
+              e = list_next (e))
+      {
+          struct thread * th = list_entry (e, struct thread, allelem);
+          th->Thread_Recent_CPU=ADD_FLOATING_TO_INT (DIV_TWO_FLOATING_NUMBERS (MUL_TWO_FLOATING_NUMBERS
+                          (MUL_FLOATING_WITH_INT (Thread_Load_Avg, 2), th->Thread_Recent_CPU),
+                          ADD_FLOATING_TO_INT (MUL_FLOATING_WITH_INT (Thread_Load_Avg, 2), 1)),th->Thread_Nice_Value);
+      }
+      }
+
+      if(timer_ticks() % TIME_SLICE == 0)
+      {
+              int temp_priority=0;
+              struct list_elem *e;
+              for (e = list_begin (&all_list); e != list_end (&all_list);
+                e = list_next (e))
+          {
+              struct thread *th = list_entry (e, struct thread, allelem);
+              temp_priority = PRI_MAX - ROUND_FLOATING_TO_NEAREST_INT(DIV_FLOATING_WITH_INT (th->Thread_Recent_CPU,4)) - (th->Thread_Nice_Value * 2);
+              if(temp_priority>PRI_MAX)
+              {
+                temp_priority=PRI_MAX;
+              }
+              else if(temp_priority<PRI_MIN)
+              {
+                temp_priority=PRI_MIN;
+              }
+              th->priority=temp_priority;
+          }
+      
+        }
+  }
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
@@ -360,31 +409,28 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+   thread_current()->Thread_Nice_Value=nice; // our change 
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current()->Thread_Nice_Value; // our change
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return ROUND_FLOATING_TO_NEAREST_INT(MUL_FLOATING_WITH_INT(Thread_Load_Avg,100));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return ROUND_FLOATING_TO_NEAREST_INT(MUL_FLOATING_WITH_INT(thread_current()->Thread_Recent_CPU,100));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -473,6 +519,8 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  initial_thread->Thread_Nice_Value=0; // initialize nice
+  initial_thread->Thread_Recent_CPU=0; // initialize recent_cpu
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
