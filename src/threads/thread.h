@@ -13,7 +13,8 @@ enum thread_status
     THREAD_BLOCKED,     /* Waiting for an event to trigger. */
     THREAD_DYING        /* About to be destroyed. */
   };
-
+  
+  
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
@@ -88,8 +89,9 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int effectiveP;
     struct list_elem allelem;           /* List element for all threads list. */
-
+    list_less_func *compare ;
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 

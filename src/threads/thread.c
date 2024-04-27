@@ -171,7 +171,7 @@ thread_print_stats (void)
    Priority scheduling is the goal of Problem 1-3. */
 tid_t
 thread_create (const char *name, int priority,
-               thread_func *function, void *aux) 
+               thread_func *function, void *aux)               /////////////////////////////////////////////////
 {
   struct thread *t;
   struct kernel_thread_frame *kf;
@@ -244,7 +244,11 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  // void list_insert_ordered (struct list *, struct list_elem *,  list_less_func *, void *aux);
+  //void list_push_back (struct list *, struct list_elem *);
+ /// list_push_back (&ready_list, &t->elem);                   ///////////
+  list_sort(&ready_list, &t->elem,&t->compare ,&t->priority );
+  list_insert_ordered (&ready_list, &t->elem,&t->compare ,&t->priority ) ;
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -495,11 +499,22 @@ alloc_frame (struct thread *t, size_t size)
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
 static struct thread *
-next_thread_to_run (void) 
-{
+next_thread_to_run (void)                                                               //////////////ho_da///////////////
+{ 
   if (list_empty (&ready_list))
+   {
     return idle_thread;
+   }
+  else if(thread_mlfqs)
+  {
+    //advanced
+  }
   else
+  {
+    //priorty
+  }
+  
+ // else
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
 
@@ -518,7 +533,7 @@ next_thread_to_run (void)
    added at the end of the function.
 
    After this function and its caller returns, the thread switch
-   is complete. */
+   is complete. */  
 void
 thread_schedule_tail (struct thread *prev)
 {
@@ -583,7 +598,7 @@ allocate_tid (void)
   tid = next_tid++;
   lock_release (&tid_lock);
 
-  return tid;
+  return tid;   
 }
 
 /* Offset of `stack' member within `struct thread'.
