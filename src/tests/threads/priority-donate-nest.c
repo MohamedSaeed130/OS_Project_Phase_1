@@ -59,7 +59,7 @@ test_priority_donate_nest (void)
   msg ("Low thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT, thread_get_priority ());
 }
-
+ 
 static void
 medium_thread_func (void *locks_) 
 {
