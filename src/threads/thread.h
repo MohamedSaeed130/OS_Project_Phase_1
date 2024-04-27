@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+
 #include "Floating_Point.h"
 
 /* States in a thread's life cycle. */
@@ -90,9 +91,10 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int effectiveP;
+    int effectivePriority;             /*effectivePriority*/                                                      //8008@ElsayedMohmed *
+    struct list aquiredLocksList ;
+    struct lock* waitingOnLock;                                                                                   //8008@ElsayedMohmed *
     struct list_elem allelem;           /* List element for all threads list. */
-    list_less_func *compare ;
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 

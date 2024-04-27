@@ -11,6 +11,7 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
+#include "synch.h"                                                                //800008@ElsayedMohmed
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -18,6 +19,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "list.h"                                                                 //80008@ElsayedMohmed
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -256,7 +258,12 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
+ 
+                                                       //80008@ElsayedMohmed*
+   if(priority > thread_current()->priority){
+    /*we should go to schudling */
+    thread_yield();
+  }                                                      //80008@ElsayedMohmed
   return tid;
 }
 
@@ -275,7 +282,12 @@ thread_block (void)
   thread_current ()->status = THREAD_BLOCKED;
   schedule ();
 }
-
+/*      prepare to pass an argument  in a func(list_insert_ordered)                       //80008@ElsayedMohmed*          
+   inside  the thread_unblock func */
+bool to_compare_thread(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+ return ( (list_entry(a ,struct thread , elem)->priority ) > (list_entry(b , struct thread , elem)->priority) );
+}                                                                                        //80008@ElsayedMohmed      
 /* Transitions a blocked thread T to the ready-to-run state.
    This is an error if T is not blocked.  (Use thread_yield() to
    make the running thread ready.)
@@ -293,11 +305,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  // void list_insert_ordered (struct list *, struct list_elem *,  list_less_func *, void *aux);
-  //void list_push_back (struct list *, struct list_elem *);
- /// list_push_back (&ready_list, &t->elem);                   ///////////
-  list_sort(&ready_list, &t->elem,&t->compare ,&t->priority );
-  list_insert_ordered (&ready_list, &t->elem,&t->compare ,&t->priority ) ;
+  list_insert_ordered (&ready_list, &t->elem,(list_less_func*)&to_compare_thread , NULL ) ;                        //80008@ElsayedMohmed
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -519,8 +527,10 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->effectivePriority = priority;  // initialize effectivePriority            //8008@ElsayedMohmed          
   initial_thread->Thread_Nice_Value=0; // initialize nice
   initial_thread->Thread_Recent_CPU=0; // initialize recent_cpu
+
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
@@ -548,7 +558,7 @@ alloc_frame (struct thread *t, size_t size)
    idle_thread. */
 static struct thread *
 next_thread_to_run (void)                                                               //////////////ho_da///////////////
-{ 
+{                   
   if (list_empty (&ready_list))
    {
     return idle_thread;
@@ -558,7 +568,8 @@ next_thread_to_run (void)                                                       
     //advanced
   }
   else
-  {
+  {     // I need to check if the thread which highest priority depend on lock or simafor or cond_v  in use in current_thread 
+   
     //priorty
   }
   
