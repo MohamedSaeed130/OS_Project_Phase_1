@@ -59,7 +59,7 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
-bool thread_mlfqs;
+bool thread_mlfqs = false;
 
 static void kernel_thread (thread_func *, void *aux);
 
@@ -72,7 +72,8 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
- //PeriorityComparetorHandler
+
+//PeriorityComparetorHandler
 /*<! Added for Periority Scheduler !>*/
 bool PeriorityOfLockHandler(const struct list_elem *a, const struct list_elem *b, void *aux)
 {
@@ -80,6 +81,7 @@ bool PeriorityOfLockHandler(const struct list_elem *a, const struct list_elem *b
   int bPeriorityLock = list_entry(b, struct lock, lockElem)->PriorityOfLock; 
   return aPeriorityLock<bPeriorityLock;
 }
+
 /*<! Added for Periority Scheduler !>*/
 bool PriorityOfThreadHandler(const struct list_elem *a, const struct list_elem *b, void *aux)
 {

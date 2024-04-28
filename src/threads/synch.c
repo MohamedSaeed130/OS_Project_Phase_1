@@ -115,8 +115,13 @@ sema_up (struct semaphore *sema)
   if (!list_empty (&sema->waiters)) 
   {
     /*<! Added for Periority Scheduler !>*/
-    list_sort(&sema->waiters, PeriorityOfLockHandler, NULL);
-    thread_unblock (list_entry (list_pop_front(&sema->waiters), struct thread, elem));
+    struct list_elem *ElemMaxPer = list_max(&sema->waiters, PriorityOfThreadHandler, NULL);
+    struct thread *ThreadMaxPer = list_entry(ElemMaxPer, struct thread, elem);
+    
+    list_remove(ElemMaxPer);
+    if(ThreadMaxPer->priority >= thread_current()->priority)
+      thread_yield();
+    thread_unblock(ThreadMaxPer);
   }
   
   sema->value++;
@@ -204,9 +209,9 @@ lock_acquire (struct lock *lock)
   if(thread_mlfqs == true)
   {                                             
     /*<! Added for Advanced Scheduler !>*/
-    sema_down (&lock->semaphore);                                         //8008@ElsayedMohmed*
+    sema_down (&lock->semaphore);                                          
   lock->holder = thread_current ();               
-                                                                         //8008@ElsayedMohmed
+                                                                          
   }
   else
   {
@@ -214,7 +219,7 @@ lock_acquire (struct lock *lock)
     if(lock_try_acquire (lock)==false)
     { 
       struct thread *cur = thread_current();
-      cur->waitingOnLock = lock;                                        //8008@ElsayedMohmed
+      cur->waitingOnLock = lock;                                         
       if(cur->priority > lock->holder->priority)
       {
         lock->PriorityOfLock = cur->priority;
@@ -258,12 +263,12 @@ lock_try_acquire (struct lock *lock)
   if (success)
   {
     lock->holder = thread_current ();
-    // that mean the required lock is unlock                                                   //8008@ElsayedMohmed*   
+    // that mean the required lock is unlock                                                    
     if(!thread_mlfqs)
     {
       lock->PriorityOfLock = lock->holder->priority;  //make the priority of lock = priority of current thread
-       list_push_back(&lock->holder->AcquireLockList, &lock->lockElem);   //fill the Aquirelocklist  
-    }                                                                                           //8008@ElsayedMohmed  
+      list_push_back(&lock->holder->AcquireLockList, &lock->lockElem);   //fill the Aquirelocklist  
+    }                                                                                              
   }       
   return success;
 }
@@ -277,7 +282,7 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
    if (!thread_mlfqs)
-  { 
+    { 
       list_remove(&(lock->lockElem));
       /*we should get max priority and give it to the lock */
       if (!list_empty(&lock->semaphore.waiters))
@@ -286,16 +291,16 @@ lock_release (struct lock *lock)
           struct thread *ThreadMaxPriority = list_entry(ElemMaxPeriority, struct thread, elem);
           lock->PriorityOfLock = ThreadMaxPriority->priority;
       }
-  /*we actully make thread with highest priority to catch lock but we now should ensure that 
+      /*we actully make thread with highest priority to catch lock but we now should ensure that 
       this thread not require another lock and if it requires we should change thث priority of current lock */
-     if (list_empty(&lock->holder->AcquireLockList))
-     {
+      if (list_empty(&lock->holder->AcquireLockList))
+      {
         lock->holder->priority = lock->holder->effectivePriority;
-     }
-     else
-     {
-       struct list_elem *ElemMaxPeriority = list_max(&(lock->holder->AcquireLockList), &PeriorityOfLockHandler, NULL);
-       struct lock *MaxPriorityLock = list_entry(ElemMaxPeriority, struct lock, lockElem);
+      }
+      else
+      {
+        struct list_elem *ElemMaxPeriority = list_max(&(lock->holder->AcquireLockList), &PeriorityOfLockHandler, NULL);
+        struct lock *MaxPriorityLock = list_entry(ElemMaxPeriority, struct lock, lockElem);
          if (MaxPriorityLock->PriorityOfLock > lock->holder->effectivePriority)
          {
            lock->holder->priority = MaxPriorityLock->PriorityOfLock;
@@ -367,6 +372,8 @@ void
 cond_wait (struct condition *cond, struct lock *lock) 
 {
   struct semaphore_elem waiter;
+  /*< Modified for Periority Scheduler >*/
+  waiter.priority = thread_current()->priority;
 
   ASSERT (cond != NULL);
   ASSERT (lock != NULL);
