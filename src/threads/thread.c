@@ -597,14 +597,16 @@ static struct thread *
 next_thread_to_run (void)                                                               //////////////ho_da///////////////
 {                   
   if (list_empty (&ready_list))                                                          //8008@ElsayedMohmed*
-   {
+  {
     return idle_thread;
-   }
-  else (!thread_mlfqs)
-  {   //put the thread which highest priority to be run  
-   struct list_elem *ElemMaxPeriority = list_max(&ready_list, PriorityOfThreadHandler, NULL);
-   list_remove(maxPriorityElem);     //remove the thread(which maxpriority) from list_ready 
-   return list_entry (maxPriorityElem, struct thread, elem);
+  }
+  else if (thread_mlfqs == false)
+  {   
+    //put the thread which highest priority to be run  
+    struct list_elem *maxPriorityElem = list_max(&ready_list, PriorityOfThreadHandler, NULL);
+    //remove the thread(which maxpriority) from list_ready 
+    list_remove(maxPriorityElem);     
+    return list_entry (maxPriorityElem, struct thread, elem);
     //priorty schedular
   }                                                                                    //8008@ElsayedMohmed         
 }
@@ -691,7 +693,7 @@ allocate_tid (void)
 
   return tid;   
 }
-
+
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);

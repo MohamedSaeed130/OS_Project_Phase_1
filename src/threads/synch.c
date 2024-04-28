@@ -284,25 +284,25 @@ lock_release (struct lock *lock)
       { struct list_elem *ElemMaxPeriority = list_max(&(lock->semaphore.waiters), PriorityOfThreadHandler, NULL);
           
           struct thread *ThreadMaxPriority = list_entry(ElemMaxPeriority, struct thread, elem);
-          lock->lockPriority = ThreadMaxPriority->priority;
+          lock->PriorityOfLock = ThreadMaxPriority->priority;
       }
   /*we actully make thread with highest priority to catch lock but we now should ensure that 
       this thread not require another lock and if it requires we should change thث priority of current lock */
-     if (list_empty(&lock->holder->aquiredLocksList))
+     if (list_empty(&lock->holder->AcquireLockList))
      {
-        lock->holder->priority = lock->holder->actualPriority;
+        lock->holder->priority = lock->holder->effectivePriority;
      }
      else
      {
-       struct list_elem *ElemMaxPeriority = list_max(&(lock->holder->aquiredLocksList), &PeriorityOfLockHandler, NULL);
+       struct list_elem *ElemMaxPeriority = list_max(&(lock->holder->AcquireLockList), &PeriorityOfLockHandler, NULL);
        struct lock *MaxPriorityLock = list_entry(ElemMaxPeriority, struct lock, lockElem);
-         if (MaxPriorityLock->lockPriority > lock->holder->actualPriority)
+         if (MaxPriorityLock->PriorityOfLock > lock->holder->effectivePriority)
          {
-           lock->holder->priority = MaxPriorityLock->lockPriority;
+           lock->holder->priority = MaxPriorityLock->PriorityOfLock;
          }
          else
          {
-           lock->holder->priority = lock->holder->actualPriority;
+           lock->holder->priority = lock->holder->effectivePriority;
          }
      }
     
@@ -322,10 +322,12 @@ lock_held_by_current_thread (const struct lock *lock)
 
   return lock->holder == thread_current ();
 }
-
+
 /* One semaphore in a list. */
 struct semaphore_elem 
   {
+    /*< Added for Periority Schedular >*/
+    int *priority;
     struct list_elem elem;              /* List element. */
     struct semaphore semaphore;         /* This semaphore. */
   };
@@ -377,12 +379,16 @@ cond_wait (struct condition *cond, struct lock *lock)
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
 }
+
+/*< Added for Periority Schedular >*/
 //prepare to argument in func list_sort in cond_signal fn
 bool PriorityOfSemaphoreHandler(const struct list_elem *a, const struct list_elem *b, void *aux)
 {
-  return *(list_entry(a, struct semaphore_elem, elem)->priority) >
-   *(list_entry(b, struct semaphore_elem, elem)->priority);
+  return  *(list_entry(a, struct semaphore_elem, elem)->priority) >
+          *(list_entry(b, struct semaphore_elem, elem)->priority);
 }
+
+
 /* If any threads are waiting on COND (protected by LOCK), then
    this function signals one of them to wake up from its wait.
    LOCK must be held before calling this function.
