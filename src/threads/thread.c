@@ -72,18 +72,20 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-
-
+ //PeriorityComparetorHandler
 /*<! Added for Periority Scheduler !>*/
-bool PeriorityComparetorHandler(const struct list_elem *a,
-                                const struct list_elem *b,
-                                void *aux)
+bool PeriorityOfLockHandler(const struct list_elem *a, const struct list_elem *b, void *aux)
 {
   int aPeriorityLock = list_entry(a, struct lock, lockElem)->PriorityOfLock; 
   int bPeriorityLock = list_entry(b, struct lock, lockElem)->PriorityOfLock; 
   return aPeriorityLock<bPeriorityLock;
 }
-
+/*<! Added for Periority Scheduler !>*/
+bool PriorityOfThreadHandler(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+    return list_entry(a ,struct thread , elem)->priority
+     < list_entry(b , struct thread , elem)->priority;
+}
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -404,7 +406,6 @@ thread_foreach (thread_action_func *func, void *aux)
       func (t, aux);
     }
 }
-
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
@@ -422,7 +423,7 @@ thread_set_priority (int new_priority)
     struct thread *cur = thread_current();
     if(list_empty(&cur->AcquireLockList) == false)
     {
-      struct list_elem *ElemMaxPeriority = list_max(&cur->AcquireLockList, PeriorityComparetorHandler, NULL);
+      struct list_elem *ElemMaxPeriority = list_max(&cur->AcquireLockList, PeriorityOfLockHandler, NULL);
       struct lock *MaxPeriority = list_entry(ElemMaxPeriority, struct lock, lockElem);
       
       if(new_priority > MaxPeriority->PriorityOfLock)
@@ -595,22 +596,17 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void)                                                               //////////////ho_da///////////////
 {                   
-  if (list_empty (&ready_list))
+  if (list_empty (&ready_list))                                                          //8008@ElsayedMohmed*
    {
     return idle_thread;
    }
-  else if(thread_mlfqs)
-  {
-    //advanced
-  }
-  else
-  {     // I need to check if the thread which highest priority depend on lock or simafor or cond_v  in use in current_thread 
-   
-    //priorty
-  }
-  
- // else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  else (!thread_mlfqs)
+  {   //put the thread which highest priority to be run  
+   struct list_elem *ElemMaxPeriority = list_max(&ready_list, PriorityOfThreadHandler, NULL);
+   list_remove(maxPriorityElem);     //remove the thread(which maxpriority) from list_ready 
+   return list_entry (maxPriorityElem, struct thread, elem);
+    //priorty schedular
+  }                                                                                    //8008@ElsayedMohmed         
 }
 
 /* Completes a thread switch by activating the new thread's page
