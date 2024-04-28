@@ -73,6 +73,18 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+
+/*<! Added for Periority Scheduler !>*/
+bool PeriorityComparetorHandler(const struct list_elem *a,
+                                const struct list_elem *b,
+                                void *aux)
+{
+  int aPeriorityLock = list_entry(a, struct lock, lockElem)->PriorityOfLock; 
+  int bPeriorityLock = list_entry(b, struct lock, lockElem)->PriorityOfLock; 
+  return aPeriorityLock<bPeriorityLock;
+}
+
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -396,7 +408,37 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  if(thread_mlfqs == true)
+  {
+    return;
+  }
+  else
+  {
+    enum intr_level old_level;
+    ASSERT (!intr_context ());
+    old_level = intr_disable ();
+
+    struct thread *cur = thread_current();
+    if(list_empty(&cur->AcquireLockList) == false)
+    {
+      struct list_elem *ElemMaxPeriority = list_max(&cur->AcquireLockList, PeriorityComparetorHandler, NULL);
+      struct lock *MaxPeriority = list_entry(ElemMaxPeriority, struct lock, lockElem);
+      
+      if(new_priority > MaxPeriority->PriorityOfLock)
+      {
+        cur->priority = new_priority;
+      }
+      cur->effectivePriority = new_priority;
+    }
+    else
+    {
+      cur->priority = new_priority;
+      cur->effectivePriority = new_priority;
+    }
+
+    thread_yield();
+    intr_set_level (old_level);
+  }
 }
 
 /* Returns the current thread's priority. */
