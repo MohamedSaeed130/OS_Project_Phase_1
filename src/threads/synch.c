@@ -61,16 +61,16 @@ void
 sema_down (struct semaphore *sema) 
 {
   enum intr_level old_level;
-
   ASSERT (sema != NULL);
   ASSERT (!intr_context ());
-
   old_level = intr_disable ();
+
   while (sema->value == 0) 
-    {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
-      thread_block ();
-    }
+  {
+    list_push_back (&sema->waiters, &thread_current ()->elem);
+    thread_block ();
+  }
+
   sema->value--;
   intr_set_level (old_level);
 }
@@ -109,13 +109,16 @@ void
 sema_up (struct semaphore *sema) 
 {
   enum intr_level old_level;
-
   ASSERT (sema != NULL);
-
   old_level = intr_disable ();
+
   if (!list_empty (&sema->waiters)) 
-    thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+  {
+    /*<! Added for Periority Scheduler !>*/
+    list_sort(&sema->waiters, PeriorityComparetorHandler, NULL);
+    thread_unblock (list_entry (list_pop_front(&sema->waiters), struct thread, elem));
+  }
+  
   sema->value++;
   intr_set_level (old_level);
 }
@@ -156,7 +159,7 @@ sema_test_helper (void *sema_)
       sema_up (&sema[1]);
     }
 }
-
+
 /* Initializes LOCK.  A lock can be held by at most a single
    thread at any given time.  Our locks are not "recursive", that
    is, it is an error for the thread currently holding a lock to
@@ -177,6 +180,8 @@ lock_init (struct lock *lock)
 {
   ASSERT (lock != NULL);
 
+  /*<! Added for Periority Scheduler !>*/
+  lock->PriorityOfLock = 0;
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
 }
@@ -196,8 +201,39 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  if(thread_mlfqs == true)
+  {
+    /*<! Added for Advanced Scheduler !>*/
+    return;
+  }
+  else
+  {
+    /*<! Added for Periority Scheduler !>*/
+    if(lock->holder)
+    {
+      struct thread *cur = thread_current();
+      if(cur->priority > lock->holder->priority)
+      {
+        lock->PriorityOfLock = cur->priority;
+        lock->holder->priority = cur->priority;
+        
+        /* The Donation Part */
+        struct lock *temp = lock->holder->waitingOnLock;
+        while(lock)
+        {
+          if(cur->priority > temp->holder->priority)
+            temp->holder->priority = cur->priority;
+          temp = temp->holder->waitingOnLock;
+        }
+      }
+    }
+  }
+  
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
+
+  thread_current()->waitingOnLock = NULL;
+  list_push_back(&lock->holder->AcquireLockList, &lock->lockElem);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false

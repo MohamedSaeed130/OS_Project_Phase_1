@@ -263,12 +263,12 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
- 
-                                                       //80008@ElsayedMohmed*
-   if(priority > thread_current()->priority){
+                                         
+  if(priority > thread_current()->priority)
+  {
     /*we should go to schudling */
     thread_yield();
-  }                                                      //80008@ElsayedMohmed
+  }                                      
   return tid;
 }
 
@@ -310,6 +310,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
+  
   list_insert_ordered (&ready_list, &t->elem,(list_less_func*)&to_compare_thread , NULL ) ;                        //80008@ElsayedMohmed
   t->status = THREAD_READY;
   intr_set_level (old_level);

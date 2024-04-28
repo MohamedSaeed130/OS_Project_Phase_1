@@ -102,9 +102,9 @@ struct thread
     unless the idle thread is running , once per second the value of Thread_Recent_CPU is recalculated for every thread */
     Float Thread_Recent_CPU; // Estimate of the CPU time the thread has used recently
 
-    /* Periority Schedulaer added elements */
+    /*<! Added for Periority Scheduler !>*/
     int effectivePriority; 
-    struct lock* waitingOnLock;                                                                                   //8008@ElsayedMohmed *
+    struct lock* waitingOnLock;                                                                                   
     struct list_elem allelem;           
     struct list  AcquireLockList;
 

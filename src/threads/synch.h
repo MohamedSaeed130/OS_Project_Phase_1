@@ -25,11 +25,11 @@ struct lock
     
     
     /*<! Added for Periority Scheduler !>*/
-    int PriorityOfLock;                                                          //8008@ElsayedMohmed
-    struct list_elem lockElem;                                                   //8008@ElsayedMohmed
+    int PriorityOfLock;                                                          
+    struct list_elem lockElem;                                                   
   };
-/// brief 
-/// param  
+
+
 void lock_init (struct lock *);
 void lock_acquire (struct lock *);
 bool lock_try_acquire (struct lock *);
