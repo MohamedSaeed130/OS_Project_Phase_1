@@ -91,18 +91,22 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int effectivePriority;             /*effectivePriority*/                                                      //8008@ElsayedMohmed *
     struct list aquiredLocksList ;
-    struct lock* waitingOnLock;                                                                                   //8008@ElsayedMohmed *
-    struct list_elem allelem;           /* List element for all threads list. */
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-   /* Our added elements */
-   int Thread_Nice_Value; // Takes form -20 to 20 threads start with a nice value inherited from their parent thread.
-   /*Each time a timer interrupt occurs, Thread_Recent_CPU is incremented by 1 for the running thread only  ,
-   unless the idle thread is running , once per second the value of Thread_Recent_CPU is recalculated for every thread */
-   Float Thread_Recent_CPU; // Estimate of the CPU time the thread has used recently
+    /* Advanced Schedulaer added elements */
+    int Thread_Nice_Value; // Takes form -20 to 20 threads start with a nice value inherited from their parent thread.
+    /*Each time a timer interrupt occurs, Thread_Recent_CPU is incremented by 1 for the running thread only  ,
+    unless the idle thread is running , once per second the value of Thread_Recent_CPU is recalculated for every thread */
+    Float Thread_Recent_CPU; // Estimate of the CPU time the thread has used recently
+
+    /*<! Added for Periority Scheduler !>*/
+    int effectivePriority; 
+    struct lock* waitingOnLock;                                                                                   
+    struct list_elem allelem;           
+    struct list  AcquireLockList;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -151,5 +155,12 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+
+/*<! Added for Periority Scheduler !>*/
+bool PeriorityComparetorHandler(const struct list_elem *a,
+                                const struct list_elem *b,
+                                void *aux);
+
 
 #endif /* threads/thread.h */
